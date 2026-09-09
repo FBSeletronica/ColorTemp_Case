@@ -3,14 +3,12 @@ $fn = 72;
 // ---------- PLACA (medido no STEP) ----------
 board_size = 27.5;
 board_t    = 1.6;
-led_pos    = [-0.5, 0.6];
 
 usbc_x_span   = [-4.62, 4.62];
 usbc_h_above  = 3.85;
 usbc_h_below  = 0.4;
 
 btn_y        = [3.25, -3.25];   // SW1, SW2
-btn_hole_w   = 5.2;
 btn_hole_h   = 2.6;
 btn_z_bottom = -0.3;
 
@@ -50,7 +48,7 @@ wall_t_base = 1.0;    // parede da base — tambem mais fina, ainda
                         // brilho do LED (que fica escondido aqui embaixo)
 fit_gap     = 0.15;   // folga do encaixe (livre ate travar no ressalto)
 
-case_w = board_size + 2*(board_clear + wall_t_base);  // ~31.1mm
+case_w = board_size + 2*(board_clear + wall_t_base);  // ~30.3mm
 
 // ============================================================
 // GEOMETRIA AUXILIAR
@@ -98,8 +96,11 @@ func_h       = max(usbc_top_abs, btn_top_abs) + rim_margin;
 // nao o material fino. Fisicamente e' bem mais facil de flexionar
 // que uma membrana presa nos 4 lados.
 // ============================================================
-flap_w    = 4.6;   // largura da aba (limitado: 2 botoes a 6.5mm um
-                     // do outro, folga real de so 1.3mm)
+flap_w    = 3.8;   // largura da aba (limitado: 2 botoes a 6.5mm um
+                     // do outro; com door_slot=0.5 da folga real de
+                     // ~1.7mm entre as duas portinholas — aumentada
+                     // de 4.6mm porque a 0.9mm original elas
+                     // grudaram na impressao mesmo com suporte)
 flap_h    = 4.5;    // altura da aba
 door_slot = 0.5;    // largura do corte em U
 
@@ -256,7 +257,7 @@ module lid() {
 // ============================================================
 // SELEÇÃO DE PARTE
 // ============================================================
-part = "base";
+part = "both_apart";
 
 if (part == "base") {
     base();
