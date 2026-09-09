@@ -1,3 +1,50 @@
+// ============================================================
+//  Case para o projeto ColorTemp — A color coded thermometer
+//  Projeto ColorTemp Mechatronix Lab
+//  Link: https://github.com/MechatronixLab/ColorTemp/tree/master
+//  Case By Fabio / Embarcados
+// ============================================================
+//
+// COMO GERAR AS PECAS — mude a variavel `part` (fim do arquivo, bloco
+// "SELEÇÃO DE PARTE") pra escolher o que ver/exportar:
+//   "base"        -> so a base
+//   "lid"         -> so a tampa
+//   "both_apart"  -> as duas pecas lado a lado, cada uma ja na
+//                    orientacao de impressao certa (a tampa vem
+//                    rotacionada 180° — cupula pra baixo, encaixe pra
+//                    cima) — e' essa a opcao pra exportar/fatiar
+//   "assembled"   -> as duas empilhadas, uma sobre a outra, so pra
+//                    CONFERIR VISUALMENTE o encaixe montado — nao
+//                    serve pra imprimir (nao fatiar nesse modo)
+//
+// RECOMENDACOES DE IMPRESSAO:
+//   - 0% de preenchimento nas duas peças no fatiador — com parede tão
+//     fina, qualquer infill por dentro anula a difusão da tampa e
+//     pode nem fechar direito.
+//   - Tampa: force 1 unico perimetro/wall-loop no fatiador (o padrão
+//     costuma ser 2+) — isso que faz a parede ficar fina o bastante
+//     pra difundir a luz do LED. Testado com bico de 0.4mm
+//     (~0.45-0.5mm de linha real); ver wall_t_lid mais abaixo.
+//   - Nenhuma das duas peças precisa de suporte — as rampas internas
+//     do encaixe da tampa (lid()) e das travas (snap_*) foram
+//     desenhadas a ~45° especificamente pra dispensar suporte.
+//   - Montagem: a placa entra na base encaixando nos 4 pinos
+//     localizadores (boss_xy/pin_d/pin_h) antes de fechar a tampa; a
+//     tampa trava por pressão nos 4 nós da trava (snap_*, 1 por
+//     face) — não precisa de cola nem parafuso, e dá pra abrir de
+//     novo se precisar mexer na placa. Se o encaixe da tampa ficar
+//     apertado/frouxo demais pro seu printer, ajustar snap_protrude/
+//     snap_r/fit_gap (comentados no bloco de parametros da trava).
+//
+// MEDIDAS BASE (do STEP): placa 27.5x27.5mm, esp. 1.6mm; USB-C
+// borda Y+ (sobe 3.85mm); botões borda X+ (atuador quase encosta
+// na parede).
+//
+// TRAVA DA TAMPA: 4 nos rigidos (1 por face, centralizado) que
+// travam no rebaixo correspondente da tampa — ver bloco de
+// parametros e modulos snap_* mais abaixo.
+// ============================================================
+
 $fn = 72;
 
 // ---------- PLACA (medido no STEP) ----------
@@ -27,6 +74,41 @@ rim_margin = 2.3;   // minimo seguro: overlap_h (2.0) + 0.3mm de folga
 overlap_h  = 2.0;      // profundidade de encaixe ate travar no ressalto
 shoulder_w = 1.5;      // quanto o anel estreita acima do encaixe —
                         // e' nisso que a borda da base bate
+
+// ---------- TRAVA DA TAMPA (no rigido, 1 por face, centralizado) ----------
+// Um pequeno no rigido em cada uma das 4 paredes da base (sem corte,
+// sem dobradica) que trava numa cavidade correspondente da tampa
+// (ver snap_bump/snap_groove), no mesmo instante em que o batente
+// mecanico (a "cintura" em lid()) trava a profundidade. Centralizado
+// em cada face — como o no fica bem acima do recorte mais alto
+// (dentro do rim_margin, ~2mm de folga), nao chega perto de botao
+// nem USB-C em nenhuma das 4 faces.
+//
+// Quem flexiona pra deixar o no passar e' a parede FINA da tampa —
+// na faixa de entrada ela e' so ~0.35mm de verdade (a cavidade ali e'
+// dimensionada por fit_gap, nao por wall_t_lid). Por isso protrude/
+// snap_r sao conservadores (pouca interferencia = pouca forca exigida
+// da parede fina a cada abre/fecha). snap_pad reforca a tampa so na
+// regiao do rebaixo, senao ele furaria essa parede fina por fora.
+snap_on       = true;   // liga/desliga a trava, pra comparar facil
+snap_r        = 0.55;   // raio da nervura (secao) — LIMITE: a borda
+                         // interna (case_w/2+snap_protrude-2*snap_r)
+                         // tem que ficar >= pocket_w/2 (~14.15mm) com
+                         // folga, senao a nervura invade o bolso e
+                         // trava a montagem da placa. Com os valores
+                         // atuais sobra ~0.25mm — nao aumente sem
+                         // recalcular.
+snap_protrude = 0.35;   // quanto a nervura sai alem da face nominal
+snap_clear    = 0.15;   // folga da cavidade da tampa em relacao a nervura
+snap_z_off    = 0.9;    // centro da nervura, medido do topo da base
+                         // (func_h) pra baixo
+snap_len      = 3.0;    // comprimento da nervura ao longo da face
+snap_pad_t    = 0.7;    // reforco na parede FINA da tampa, so na
+                         // regiao do encaixe — sem isso o rebaixo
+                         // (cavidade) fura a parede fina por fora
+
+// 1 no por face, centralizado
+snap_normals = [ [1,0], [-1,0], [0,1], [0,-1] ];
 
 // ---------- PEGADA / PROPORÇÃO DO CUBO ----------
 // (case_r e' derivado mais abaixo, de pocket_r + wall_t_base, pra
@@ -128,6 +210,50 @@ module btn_cutout(y_center) {
 }
 
 // ============================================================
+// TRAVA DA TAMPA — no rigido na parede da base (snap_bump) + cavidade
+// correspondente na tampa (snap_groove), reforcada por fora pra nao
+// furar a parede fina (snap_pad). Todos os modulos assumem normal
+// alinhado a um eixo (n = [1,0], [-1,0], [0,1] ou [0,-1]) e usam
+// rotate() pra reorientar uma construcao feita sempre olhando pra +X.
+// ============================================================
+// n = [nx, ny] — normal da face (ver snap_normals nos parametros)
+module snap_bump(n) {
+    rotate([0, 0, atan2(n[1], n[0])])
+        translate([case_w/2 + snap_protrude - snap_r, 0, func_h - snap_z_off])
+            hull()
+                for (s = [-1, 1])
+                    translate([0, s*(snap_len/2 - snap_r), 0])
+                        sphere(r = snap_r);
+}
+
+module snap_groove(n) {
+    rotate([0, 0, atan2(n[1], n[0])])
+        translate([case_w/2 + snap_protrude - snap_r, 0, -snap_z_off])
+            hull()
+                for (s = [-1, 1])
+                    translate([0, s*(snap_len/2 - snap_r), 0])
+                        sphere(r = snap_r + snap_clear);
+}
+
+// reforco local na parede fina da tampa, so na regiao do encaixe —
+// comeca 0.2mm PRA DENTRO da parede existente (sobreposicao, nao so
+// encostando) pra garantir que o CGAL funda os dois solidos; ver nota
+// sobre eps() mais abaixo no modulo lid()
+module snap_pad(n) {
+    eps = 0.2;
+    pad_half_len = snap_len/2 + 1.0;
+    // +0.3 de folga sobre o raio do rebaixo (snap_r+snap_clear) —
+    // o suficiente pra cobrir a cavidade com margem sem ultrapassar
+    // a borda de baixo da tampa (z=-overlap_h) nem invadir muito a
+    // rampa (z=0); com +0.8 (usado antes) o reforco ficava pendurado
+    // ~0.4mm abaixo do corpo principal da tampa
+    pad_half_h   = snap_r + snap_clear + 0.3;
+    rotate([0, 0, atan2(n[1], n[0])])
+        translate([case_w/2 + wall_t_lid - eps, -pad_half_len, -snap_z_off - pad_half_h])
+            cube([snap_pad_t + eps, 2*pad_half_len, 2*pad_half_h]);
+}
+
+// ============================================================
 // BASE
 // ============================================================
 module base() {
@@ -145,6 +271,8 @@ module base() {
             for (p = boss_xy)
                 translate([p[0], p[1], board_bottom - 0.2])
                     cylinder(h = pin_h + 0.2, d = pin_d);
+            if (snap_on)
+                for (n = snap_normals) snap_bump(n);
         }
 
         // ---- USB-C (parede da borda Y+) ----
@@ -195,6 +323,11 @@ module lid() {
                             rrect(case_w + 2*wall_t_lid - 2*top_round_shrink,
                                   max(case_r + wall_t_lid - top_round_shrink, 1));
                 }
+
+            // reforco local pra caber o rebaixo da trava sem furar
+            // a parede fina (ver bloco de parametros da trava)
+            if (snap_on)
+                for (n = snap_normals) snap_pad(n);
         }
 
         // camara com cintura: larga -> rampa -> estreita (trava) ->
@@ -250,6 +383,9 @@ module lid() {
                             rrect(case_w + 2*wall_t_lid - 2*top_round_shrink - 2*wall_t_lid,
                                   max(case_r + wall_t_lid - top_round_shrink - wall_t_lid, 1));
                 }
+
+            if (snap_on)
+                for (n = snap_normals) snap_groove(n);
         }
     }
 }
@@ -257,7 +393,7 @@ module lid() {
 // ============================================================
 // SELEÇÃO DE PARTE
 // ============================================================
-part = "both_apart";
+part = "assembled";
 
 if (part == "base") {
     base();
