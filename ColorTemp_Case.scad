@@ -16,8 +16,8 @@ btn_z_bottom = -0.3;
 board_clear = 0.4;
 floor_t     = 2.0;
 standoff_h  = 2.5;
-pin_d       = 3.2;
-pin_h       = 1.7;
+pin_d       = 3.3;
+pin_h       = 1.8;
 standoff_d  = 6.0;
 
 // margem solida acima do recorte mais alto — dentro dela a tampa
