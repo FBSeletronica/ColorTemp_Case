@@ -25,24 +25,29 @@
 //     costuma ser 2+) — isso que faz a parede ficar fina o bastante
 //     pra difundir a luz do LED. Testado com bico de 0.4mm
 //     (~0.45-0.5mm de linha real); ver wall_t_lid mais abaixo.
-//   - Nenhuma das duas peças precisa de suporte — as rampas internas
-//     do encaixe da tampa (lid()) e das travas (snap_*) foram
-//     desenhadas a ~45° especificamente pra dispensar suporte.
+//   - Nenhuma das duas peças precisa de suporte — a rampa interna do
+//     encaixe da tampa (lid()) foi desenhada a ~45° especificamente
+//     pra dispensar suporte; os blocos da trava (snap_*) sao so
+//     relevos numa parede vertical, tambem sem suporte.
 //   - Montagem: a placa entra na base encaixando nos 4 pinos
 //     localizadores (boss_xy/pin_d/pin_h) antes de fechar a tampa; a
-//     tampa trava por pressão nos 4 nós da trava (snap_*, 1 por
+//     tampa trava por pressão nos 4 blocos da trava (snap_*, 1 por
 //     face) — não precisa de cola nem parafuso, e dá pra abrir de
 //     novo se precisar mexer na placa. Se o encaixe da tampa ficar
 //     apertado/frouxo demais pro seu printer, ajustar snap_protrude/
-//     snap_r/fit_gap (comentados no bloco de parametros da trava).
+//     snap_depth/fit_gap (comentados no bloco de parametros da trava).
+//     Pra desmontar, da pra empurrar a placa pra fora dos pinos por
+//     baixo, enfiando algo fino no furo central do fundo da base
+//     (vent_hole_d) — o mesmo furo tambem deixa ar circular por baixo
+//     da placa.
 //
 // MEDIDAS BASE (do STEP): placa 27.5x27.5mm, esp. 1.6mm; USB-C
 // borda Y+ (sobe 3.85mm); botões borda X+ (atuador quase encosta
 // na parede).
 //
-// TRAVA DA TAMPA: 4 nos rigidos (1 por face, centralizado) que
-// travam no rebaixo correspondente da tampa — ver bloco de
-// parametros e modulos snap_* mais abaixo.
+// TRAVA DA TAMPA: 4 blocos rigidos (1 por face, centralizado), direto
+// na parede da base, travando no rebaixo correspondente da tampa —
+// ver bloco de parametros e modulos snap_* mais abaixo.
 // ============================================================
 
 $fn = 72;
@@ -63,9 +68,17 @@ btn_z_bottom = -0.3;
 board_clear = 0.4;
 floor_t     = 2.0;
 standoff_h  = 2.5;
-pin_d       = 3.3;
-pin_h       = 1.8;
+pin_d       = 3.2;
+pin_h       = 1.7;
 standoff_d  = 6.0;
+
+// furo centralizado no fundo da base (atravessa o floor_t inteiro) —
+// deixa entrar ar por baixo da placa e da pra empurrar a placa pra
+// fora pelos pinos enfiando algo fino por ele. Centralizado em (0,0),
+// bem longe dos 4 pinos/bosses (a ~14.1mm do centro, raio 3mm cada) —
+// confira se nao ha nada sensivel embaixo da placa nessa area antes
+// de imprimir, o script nao sabe o que tem na face de baixo dela.
+vent_hole_d = 8.0;
 
 // margem solida acima do recorte mais alto — dentro dela a tampa
 // desliza livre ate um RESSALTO interno (ver lid()) que trava a
@@ -75,39 +88,44 @@ overlap_h  = 2.0;      // profundidade de encaixe ate travar no ressalto
 shoulder_w = 1.5;      // quanto o anel estreita acima do encaixe —
                         // e' nisso que a borda da base bate
 
-// ---------- TRAVA DA TAMPA (no rigido, 1 por face, centralizado) ----------
-// Um pequeno no rigido em cada uma das 4 paredes da base (sem corte,
-// sem dobradica) que trava numa cavidade correspondente da tampa
-// (ver snap_bump/snap_groove), no mesmo instante em que o batente
-// mecanico (a "cintura" em lid()) trava a profundidade. Centralizado
-// em cada face — como o no fica bem acima do recorte mais alto
-// (dentro do rim_margin, ~2mm de folga), nao chega perto de botao
-// nem USB-C em nenhuma das 4 faces.
+// ---------- TRAVA DA TAMPA (bloco rigido, 1 por face, centralizado) ----------
+// v6 — sem lingueta: o bloco fica direto na parede solida da base,
+// sem corte em U ao redor (peca mais simples de imprimir/inspecionar).
+// Segue sendo um BLOCO retangular (nao mais a esfera da v4, que
+// afunilava ate virar um ponto e saia fraca/em fiapo na impressao) —
+// secao constante do começo ao fim, com massa suficiente mesmo sem
+// lingueta.
 //
-// Quem flexiona pra deixar o no passar e' a parede FINA da tampa —
-// na faixa de entrada ela e' so ~0.35mm de verdade (a cavidade ali e'
-// dimensionada por fit_gap, nao por wall_t_lid). Por isso protrude/
-// snap_r sao conservadores (pouca interferencia = pouca forca exigida
-// da parede fina a cada abre/fecha). snap_pad reforca a tampa so na
-// regiao do rebaixo, senao ele furaria essa parede fina por fora.
+// Consequencia de tirar a lingueta: quem flexiona pra deixar o bloco
+// passar volta a ser a parede FINA da tampa (na faixa de entrada ela
+// e' so ~0.35mm de verdade — a cavidade ali e' dimensionada por
+// fit_gap, nao por wall_t_lid). Por isso snap_protrude voltou a um
+// valor conservador (mesmo raciocinio da v4 rigida).
+//
+// Centralizado em todas as 4 faces — o bloco fica bem acima do
+// recorte mais alto (dentro do rim_margin), entao nao chega perto de
+// botao nem USB-C mesmo centralizado.
 snap_on       = true;   // liga/desliga a trava, pra comparar facil
-snap_r        = 0.55;   // raio da nervura (secao) — LIMITE: a borda
-                         // interna (case_w/2+snap_protrude-2*snap_r)
-                         // tem que ficar >= pocket_w/2 (~14.15mm) com
-                         // folga, senao a nervura invade o bolso e
-                         // trava a montagem da placa. Com os valores
-                         // atuais sobra ~0.25mm — nao aumente sem
-                         // recalcular.
-snap_protrude = 0.35;   // quanto a nervura sai alem da face nominal
-snap_clear    = 0.15;   // folga da cavidade da tampa em relacao a nervura
-snap_z_off    = 0.9;    // centro da nervura, medido do topo da base
+snap_depth    = 1.0;    // profundidade do bloco, embutida na parede —
+                         // LIMITE: a borda interna
+                         // (case_w/2+snap_protrude-snap_depth) tem que
+                         // ficar >= pocket_w/2 (~14.15mm) com folga,
+                         // senao o bloco invade o bolso e trava a
+                         // montagem da placa. Com os valores atuais
+                         // sobra ~0.35mm — nao aumente sem recalcular.
+snap_protrude = 0.35;   // quanto o bloco sai alem da face nominal —
+                         // conservador de proposito (ver nota acima
+                         // sobre a parede fina da tampa flexionar)
+snap_clear    = 0.15;   // folga da cavidade da tampa em relacao ao bloco
+snap_h        = 1.8;    // altura do bloco (Z)
+snap_z_off    = 1.0;    // centro do bloco, medido do topo da base
                          // (func_h) pra baixo
-snap_len      = 3.0;    // comprimento da nervura ao longo da face
+snap_len      = 3.5;    // largura do bloco ao longo da face
 snap_pad_t    = 0.7;    // reforco na parede FINA da tampa, so na
-                         // regiao do encaixe — sem isso o rebaixo
-                         // (cavidade) fura a parede fina por fora
+                         // regiao do rebaixo — sem isso o rebaixo
+                         // fura essa parede por fora
 
-// 1 no por face, centralizado
+// 1 bloco por face, centralizado
 snap_normals = [ [1,0], [-1,0], [0,1], [0,-1] ];
 
 // ---------- PEGADA / PROPORÇÃO DO CUBO ----------
@@ -128,7 +146,14 @@ wall_t_lid  = 0.5;    // parede da tampa (difusor) — alvo: 1 SO
 wall_t_base = 1.0;    // parede da base — tambem mais fina, ainda
                         // deixa vazar um pouco de luz, aproximando o
                         // brilho do LED (que fica escondido aqui embaixo)
-fit_gap     = 0.15;   // folga do encaixe (livre ate travar no ressalto)
+fit_gap     = 0.10;   // folga do encaixe (livre ate travar no ressalto) —
+                       // era 0.15, reduzida porque o encaixe ainda
+                       // ficava um pouco frouxo na pratica. De brinde,
+                       // a parede da tampa na faixa de entrada
+                       // (wall_t_lid - fit_gap) fica um pouco mais
+                       // grossa tambem (0.35 -> 0.40mm). Se ainda
+                       // ficar frouxo, dá pra descer mais — se ficar
+                       // apertado demais pra montar, sobe de novo.
 
 case_w = board_size + 2*(board_clear + wall_t_base);  // ~30.3mm
 
@@ -210,44 +235,77 @@ module btn_cutout(y_center) {
 }
 
 // ============================================================
-// TRAVA DA TAMPA — no rigido na parede da base (snap_bump) + cavidade
-// correspondente na tampa (snap_groove), reforcada por fora pra nao
-// furar a parede fina (snap_pad). Todos os modulos assumem normal
-// alinhado a um eixo (n = [1,0], [-1,0], [0,1] ou [0,-1]) e usam
-// rotate() pra reorientar uma construcao feita sempre olhando pra +X.
+// TRAVA DA TAMPA — bloco rigido na parede da base (snap_bump) +
+// cavidade correspondente na tampa (snap_groove), reforcada por fora
+// pra nao furar a parede fina (snap_pad). Todos os modulos assumem
+// normal alinhado a um eixo (n = [1,0], [-1,0], [0,1] ou [0,-1]) e
+// usam rotate() pra reorientar uma construcao feita sempre olhando
+// pra +X.
 // ============================================================
 // n = [nx, ny] — normal da face (ver snap_normals nos parametros)
+//
+// Sem lingueta, quem cede pra deixar o bloco passar e' a parede fina
+// da tampa (ver nota no bloco de parametros) — e como o bloco tem as
+// duas faces (topo/base) retas, SEM chanfro, a parede sentiria a
+// interferencia inteira (0.35-fit_gap) de uma vez, de repente, assim
+// que a borda da tampa alcança o bloco, em vez de ir sentindo aos
+// poucos. Por isso as pontas de cima/baixo do bloco sao rampas (saem
+// encostadas na parede e sobem ate a projecao plena em snap_champ) —
+// só o miolo (snap_h - 2*snap_champ) fica na projecao plena, que e'
+// onde ele realmente trava. Reduz a chance de rachar a parede fina no
+// primeiro contato, sem mudar tamanho/posicao externa do bloco.
+snap_champ = 0.4;   // altura de cada rampa nas pontas do bloco
+
 module snap_bump(n) {
+    x_flush = case_w/2;
+    x_out   = case_w/2 + snap_protrude;
+    x_in    = case_w/2 + snap_protrude - snap_depth;
+    zc      = func_h - snap_z_off;
     rotate([0, 0, atan2(n[1], n[0])])
-        translate([case_w/2 + snap_protrude - snap_r, 0, func_h - snap_z_off])
-            hull()
-                for (s = [-1, 1])
-                    translate([0, s*(snap_len/2 - snap_r), 0])
-                        sphere(r = snap_r);
+        translate([0, -snap_len/2, zc])
+            union() {
+                // rampa de baixo: encostada na parede -> projecao plena
+                hull() {
+                    translate([x_flush, 0, -snap_h/2])
+                        cube([0.01, snap_len, 0.01]);
+                    translate([x_in, 0, -snap_h/2 + snap_champ])
+                        cube([snap_depth, snap_len, 0.01]);
+                }
+                // miolo — projecao plena, e' aqui que trava de verdade
+                translate([x_in, 0, -snap_h/2 + snap_champ])
+                    cube([snap_depth, snap_len, snap_h - 2*snap_champ]);
+                // rampa de cima: projecao plena -> encostada na parede
+                hull() {
+                    translate([x_in, 0, snap_h/2 - snap_champ])
+                        cube([snap_depth, snap_len, 0.01]);
+                    translate([x_flush, 0, snap_h/2])
+                        cube([0.01, snap_len, 0.01]);
+                }
+            }
 }
 
 module snap_groove(n) {
+    gd = snap_depth + 2*snap_clear;
+    gl = snap_len + 2*snap_clear;
+    gh = snap_h + 2*snap_clear;
     rotate([0, 0, atan2(n[1], n[0])])
-        translate([case_w/2 + snap_protrude - snap_r, 0, -snap_z_off])
-            hull()
-                for (s = [-1, 1])
-                    translate([0, s*(snap_len/2 - snap_r), 0])
-                        sphere(r = snap_r + snap_clear);
+        translate([case_w/2 + snap_protrude + snap_clear - gd, -gl/2,
+                    -snap_z_off - gh/2])
+            cube([gd, gl, gh]);
 }
 
-// reforco local na parede fina da tampa, so na regiao do encaixe —
+// reforco local na parede fina da tampa, so na regiao do rebaixo —
 // comeca 0.2mm PRA DENTRO da parede existente (sobreposicao, nao so
 // encostando) pra garantir que o CGAL funda os dois solidos; ver nota
 // sobre eps() mais abaixo no modulo lid()
 module snap_pad(n) {
     eps = 0.2;
     pad_half_len = snap_len/2 + 1.0;
-    // +0.3 de folga sobre o raio do rebaixo (snap_r+snap_clear) —
-    // o suficiente pra cobrir a cavidade com margem sem ultrapassar
-    // a borda de baixo da tampa (z=-overlap_h) nem invadir muito a
-    // rampa (z=0); com +0.8 (usado antes) o reforco ficava pendurado
-    // ~0.4mm abaixo do corpo principal da tampa
-    pad_half_h   = snap_r + snap_clear + 0.3;
+    // +0.05 de folga sobre a cavidade (snap_h/2+snap_clear) — so o
+    // suficiente pra cobrir com margem sem ultrapassar muito a borda
+    // de baixo da tampa (z=-overlap_h); ja usamos +0.3/+0.8 antes e
+    // o reforco ficava pendurado abaixo do corpo principal da tampa
+    pad_half_h   = snap_h/2 + snap_clear + 0.05;
     rotate([0, 0, atan2(n[1], n[0])])
         translate([case_w/2 + wall_t_lid - eps, -pad_half_len, -snap_z_off - pad_half_h])
             cube([snap_pad_t + eps, 2*pad_half_len, 2*pad_half_h]);
@@ -282,6 +340,10 @@ module base() {
         // ---- botoes com portinhola (parede da borda X+) ----
         for (y = btn_y)
             btn_cutout(y);
+
+        // ---- furo de ventilacao/acesso (fundo da base) ----
+        translate([0, 0, -1])
+            cylinder(h = floor_t + 2, d = vent_hole_d);
     }
 }
 
@@ -393,7 +455,7 @@ module lid() {
 // ============================================================
 // SELEÇÃO DE PARTE
 // ============================================================
-part = "assembled";
+part = "base";
 
 if (part == "base") {
     base();
